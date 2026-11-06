@@ -6,6 +6,7 @@ FROM debian:trixie-slim
 
 ARG TC_PACKAGES
 ARG FLAVOR
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN --mount=type=secret,id=apt,required=true \
     apt-get update \
