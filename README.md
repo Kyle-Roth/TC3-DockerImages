@@ -94,14 +94,11 @@ secret-file option on shared hosts.
 Workflow: `.forgejo/workflows/build-images.yml`. It runs on pushes to `master`, PRs (build and
 verify only, no push), weekly, and manually (optional comma-separated `flavors` input).
 
-Runner: a Forgejo runner whose jobs can use the host Docker daemon, with a label that maps to the
-official [`docker:cli`](https://hub.docker.com/_/docker) image (243 MB, amd64 + arm64, includes git,
-buildx and compose; the workflow installs Node.js for the JavaScript actions). In the runner's `config.yml`:
+Runner: a Forgejo runner whose jobs can use the host Docker daemon, with the label
+`catthehacker-latest-armbox` mapped to `ghcr.io/catthehacker/ubuntu:act-latest` (includes Node.js
+for the JavaScript actions, git, and the Docker CLI with buildx). In the runner's `config.yml`:
 
 ```yaml
-runner:
-  labels:
-    - "docker-cli-armbox:docker://docker:cli"
 container:
   docker_host: "automount"
 ```
