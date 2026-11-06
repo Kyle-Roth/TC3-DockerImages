@@ -1,0 +1,63 @@
+name: Build TwinCAT images
+
+on:
+  push:
+    branches: [master]
+    paths: ['.forgejo/workflows/**', 'docker/**', 'flavors/**', 'scripts/**']
+  pull_request:
+    paths: ['.forgejo/workflows/**', 'docker/**', 'flavors/**', 'scripts/**']
+  schedule:
+    - cron: '0 12 * * 1'   # weekly, picks up new Beckhoff/Debian packages
+  workflow_dispatch:
+
+jobs:
+  flavors:
+    runs-on: catthehacker-latest-armbox
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: echo "list=$(scripts/list-flavors.sh --json)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.flavor }}
+    needs: flavors
+    runs-on: catthehacker-latest-armbox
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ${{ fromJSON(needs.flavors.outputs.list) }}
+    env:
+      FLAVOR: ${{ matrix.flavor }}
+      BHF_USER: ${{ secrets.BHF_USER }}
+      BHF_PASSWORD: ${{ secrets.BHF_PASSWORD }}
+      SERVER_URL: ${{ github.server_url }}
+      IMAGE_OWNER: ${{ github.repository_owner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: https://github.com/docker/setup-qemu-action@v3
+        with:
+          cache-image: false   # the runner's Actions cache is unreachable; the image is local anyway
+      - uses: https://github.com/docker/setup-buildx-action@v3
+
+      - name: Build
+        run: scripts/build.sh "$FLAVOR"
+
+      - name: Verify no credentials in image
+        run: scripts/verify-no-secrets.sh "$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)"
+
+      - name: Smoke test
+        run: |
+          docker run --rm "$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)" \
+            sh -c 'test -x /usr/bin/TcSystemServiceUm && command -v adstool && echo "flavor=$TC_FLAVOR"'
+
+      - name: Push
+        if: github.event_name != 'pull_request'   # PRs only build and verify
+        env:
+          REGISTRY_USER: ${{ vars.REGISTRY_USER || github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        run: |
+          export REGISTRY="${SERVER_URL#*://}"
+          echo "$REGISTRY_TOKEN" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
+          scripts/build.sh "$FLAVOR" --push
