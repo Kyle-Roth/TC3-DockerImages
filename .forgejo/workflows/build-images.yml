@@ -35,10 +35,14 @@ defaults:
 jobs:
   discover:
     name: Discover flavors
-    runs-on: catthehacker-latest-armbox   # runner label, see README
+    runs-on: docker-cli-armbox   # runner label -> docker://docker:cli, see README
     outputs:
       flavors: ${{ steps.list.outputs.flavors }}
     steps:
+      # docker:cli (Alpine) has git + Docker CLI + buildx; JavaScript actions also need Node.js
+      - name: Install Node.js
+        run: apk add --no-cache nodejs
+
       - uses: actions/checkout@v4
 
       - name: List flavors
@@ -53,7 +57,7 @@ jobs:
   build:
     name: Build ${{ matrix.flavor }}
     needs: discover
-    runs-on: catthehacker-latest-armbox   # runner label, see README
+    runs-on: docker-cli-armbox   # runner label -> docker://docker:cli, see README
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -69,6 +73,10 @@ jobs:
       # Only push from trusted events; PRs build and verify only
       PUSH: ${{ github.event_name != 'pull_request' && '1' || '' }}
     steps:
+      # docker:cli (Alpine) has git + Docker CLI + buildx; JavaScript actions also need Node.js
+      - name: Install Node.js
+        run: apk add --no-cache nodejs
+
       - uses: actions/checkout@v4
 
       - name: Set registry variables

@@ -1,4 +1,4 @@
-# RT-Linux-Docker
+# TC3-DockerImages
 
 TwinCAT 3.1 XAR (user mode) runtime images for Beckhoff RT Linux, built in several
 **flavors** from one parameterized Dockerfile and published to the Forgejo container registry.
@@ -94,10 +94,19 @@ secret-file option on shared hosts.
 Workflow: `.forgejo/workflows/build-images.yml`. It runs on pushes to `master`, PRs (build and
 verify only, no push), weekly, and manually (optional comma-separated `flavors` input).
 
-Runner: a Forgejo runner with `container.docker_host: "automount"` in its `config.yml` (so jobs can
-use the host Docker daemon) and the label `catthehacker-latest-armbox`
-(`docker://ghcr.io/catthehacker/ubuntu:act-latest`); change `runs-on` in the workflow for another
-runner. The host can be amd64 or arm64; the other
+Runner: a Forgejo runner whose jobs can use the host Docker daemon, with a label that maps to the
+official [`docker:cli`](https://hub.docker.com/_/docker) image (243 MB, amd64 + arm64, includes git,
+buildx and compose; the workflow installs Node.js for the JavaScript actions). In the runner's `config.yml`:
+
+```yaml
+runner:
+  labels:
+    - "docker-cli-armbox:docker://docker:cli"
+container:
+  docker_host: "automount"
+```
+
+To use another runner, change `runs-on` in the workflow. The host can be amd64 or arm64; the other
 architecture is built through QEMU.
 
 | Kind     | Name             | Purpose                                                    |
