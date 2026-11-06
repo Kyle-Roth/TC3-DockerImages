@@ -1,0 +1,30 @@
+# TwinCAT XAR runtime container. Build first: make build-image FLAVOR=basic
+# Settings and credentials are read from .env (see .env.example).
+services:
+  tc31-xar:
+    image: ${TC_IMAGE:-tc31-xar:basic}
+    environment:
+      AMS_NETID: ${AMS_NETID:-15.15.15.15.1.1}
+      # Runtime apt credentials. Leave empty to skip apt auth setup.
+      BHF_USER: ${BHF_USER:-}
+      BHF_PASSWORD: ${BHF_PASSWORD:-}
+      # More secure alternative (not visible in `docker inspect`): use a secret file instead
+      # BHF_AUTH_FILE: /run/secrets/bhf
+    # secrets:
+    #   - bhf
+    # Beckhoff's default: full access for realtime scheduling, EFI variables
+    # (Beckhoff IPC hardware info) and host devices/NICs (EtherCAT).
+    privileged: true
+    # Minimal alternative for dev/test hosts (realtime scheduling only):
+    # privileged: false
+    # cap_add:
+    #   - SYS_NICE
+    ports:
+      - "8016:8016/tcp"
+      - "48898:48898/tcp"
+      - "48899:48899/udp"
+    restart: unless-stopped
+
+# secrets:
+#   bhf:
+#     file: ./my-bhf.netrc   # netrc format, see docker/apt-config/bhf.conf
