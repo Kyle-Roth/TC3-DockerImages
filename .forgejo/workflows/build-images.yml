@@ -1,135 +1,61 @@
-name: Build TwinCAT XAR images
+name: Build TwinCAT images
 
 on:
-  schedule:
-    - cron: '0 12 * * 1'   # weekly, Monday 12:00 UTC - picks up new Beckhoff/Debian packages
   push:
-    branches:
-      - master
-    paths:
-      - '.forgejo/workflows/build-images.yml'
-      - 'docker/**'
-      - 'flavors/**'
-      - 'scripts/**'
+    branches: [master]
+    paths: ['.forgejo/workflows/**', 'docker/**', 'flavors/**', 'scripts/**']
   pull_request:
-    paths:
-      - '.forgejo/workflows/build-images.yml'
-      - 'docker/**'
-      - 'flavors/**'
-      - 'scripts/**'
+    paths: ['.forgejo/workflows/**', 'docker/**', 'flavors/**', 'scripts/**']
+  schedule:
+    - cron: '0 12 * * 1'   # weekly, picks up new Beckhoff/Debian packages
   workflow_dispatch:
-    inputs:
-      flavors:
-        description: 'Comma separated flavors to build (empty = all)'
-        required: false
-        default: ''
-
-env:
-  IMAGE_NAME: tc31-xar
-  LATEST_FLAVOR: all
-
-defaults:
-  run:
-    shell: sh
 
 jobs:
-  discover:
-    name: Discover flavors
-    runs-on: catthehacker-latest-armbox   # runner label -> ghcr.io/catthehacker/ubuntu:act-latest, see README
+  flavors:
+    runs-on: catthehacker-latest-armbox
     outputs:
-      flavors: ${{ steps.list.outputs.flavors }}
+      list: ${{ steps.list.outputs.list }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: List flavors
-        id: list
-        env:
-          FLAVOR_FILTER: ${{ inputs.flavors }}
-        run: |
-          flavors=$(scripts/list-flavors.sh --json "$FLAVOR_FILTER")
-          echo "flavors=$flavors" >> "$GITHUB_OUTPUT"
-          scripts/list-flavors.sh $(echo "$FLAVOR_FILTER" | tr -d ' ')
+      - id: list
+        run: echo "list=$(scripts/list-flavors.sh --json)" >> "$GITHUB_OUTPUT"
 
   build:
-    name: Build ${{ matrix.flavor }}
-    needs: discover
-    runs-on: catthehacker-latest-armbox   # runner label -> ghcr.io/catthehacker/ubuntu:act-latest, see README
+    name: ${{ matrix.flavor }}
+    needs: flavors
+    runs-on: catthehacker-latest-armbox
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
-        flavor: ${{ fromJSON(needs.discover.outputs.flavors) }}
+        flavor: ${{ fromJSON(needs.flavors.outputs.list) }}
     env:
       FLAVOR: ${{ matrix.flavor }}
-      BUILD_REF: ${{ github.sha }}
-      # scripts/lib.sh turns these into a temporary netrc (mode 600) that is
-      # only passed to BuildKit as a secret and deleted when each script exits
       BHF_USER: ${{ secrets.BHF_USER }}
       BHF_PASSWORD: ${{ secrets.BHF_PASSWORD }}
-      # Only push from trusted events; PRs build and verify only
-      PUSH: ${{ github.event_name != 'pull_request' && '1' || '' }}
+      SERVER_URL: ${{ github.server_url }}
+      IMAGE_OWNER: ${{ github.repository_owner }}
     steps:
       - uses: actions/checkout@v4
+      - uses: https://github.com/docker/setup-qemu-action@v3
+      - uses: https://github.com/docker/setup-buildx-action@v3
 
-      - name: Set registry variables
-        env:
-          SERVER_URL: ${{ github.server_url }}
-          OWNER: ${{ github.repository_owner }}
-          REGISTRY_OVERRIDE: ${{ vars.REGISTRY }}
-          OWNER_OVERRIDE: ${{ vars.IMAGE_OWNER }}
-        run: |
-          registry=${REGISTRY_OVERRIDE:-$(echo "$SERVER_URL" | sed -E 's#^https?://##; s#/.*$##')}
-          owner=$(echo "${OWNER_OVERRIDE:-$OWNER}" | tr '[:upper:]' '[:lower:]')
-          {
-            echo "REGISTRY=$registry"
-            echo "IMAGE_OWNER=$owner"
-            echo "IMAGE_SOURCE=$SERVER_URL/${{ github.repository }}"
-            echo "BUILD_DATE_TAG=$(date -u +%Y%m%d)"
-          } >> "$GITHUB_ENV"
-
-      - name: Check Beckhoff credentials
-        run: |
-          if [ -z "$BHF_USER" ] || [ -z "$BHF_PASSWORD" ]; then
-            echo "::error::Repository secrets BHF_USER and BHF_PASSWORD must be set"
-            exit 1
-          fi
-
-      - name: Set up QEMU
-        uses: https://github.com/docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: https://github.com/docker/setup-buildx-action@v3
-
-      - name: Build ${{ matrix.flavor }} (host platform, local)
+      - name: Build
         run: scripts/build.sh "$FLAVOR"
 
       - name: Verify no credentials in image
-        run: |
-          image=$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)
-          scripts/verify-no-secrets.sh "$image"
+        run: scripts/verify-no-secrets.sh "$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)"
 
       - name: Smoke test
         run: |
-          image=$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)
-          docker run --rm --entrypoint /bin/sh "$image" -c \
-            'test -x /usr/bin/TcSystemServiceUm && command -v adstool && echo "flavor=$TC_FLAVOR"'
+          docker run --rm "$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)" \
+            sh -c 'test -x /usr/bin/TcSystemServiceUm && command -v adstool && echo "flavor=$TC_FLAVOR"'
 
-      - name: Log in to Forgejo container registry
-        if: env.PUSH
+      - name: Push
+        if: github.event_name != 'pull_request'   # PRs only build and verify
         env:
           REGISTRY_USER: ${{ vars.REGISTRY_USER || github.actor }}
           REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
         run: |
-          if [ -z "$REGISTRY_TOKEN" ]; then
-            echo "::error::Secret REGISTRY_TOKEN (token with write:package scope) is not set"
-            exit 1
-          fi
+          export REGISTRY="${SERVER_URL#*://}"
           echo "$REGISTRY_TOKEN" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
-
-      - name: Build and push ${{ matrix.flavor }} (multi-arch)
-        if: env.PUSH
-        run: scripts/build.sh "$FLAVOR" --push
-
-      - name: Log out of registry
-        if: always()
-        run: docker logout "$REGISTRY" >/dev/null 2>&1 || true
+          scripts/build.sh "$FLAVOR" --push

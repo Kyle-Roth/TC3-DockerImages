@@ -1,3 +1,0 @@
-# Never send credentials into the build context
-apt-config/bhf.conf
-**/*.netrc

@@ -1,128 +1,50 @@
 # TC3-DockerImages
 
-TwinCAT 3.1 XAR (user mode) runtime images for Beckhoff RT Linux, built in several
-**flavors** from one parameterized Dockerfile and published to the Forgejo container registry.
+TwinCAT 3.1 XAR (user mode) runtime images on Debian, one image per **flavor**, built for
+amd64 and arm64 and pushed to the Forgejo registry as `git.kyleroth.dev/beckhoff/tc31-xar:<flavor>`
+(plus `<flavor>-YYYYMMDD` and `<flavor>-<sha>` tags).
 
-| Flavor   | Contents                                                       |
-|----------|----------------------------------------------------------------|
-| `basic`  | `tc31-xar-um`, `adstool`                                       |
-| `motion` | basic + `tf5000-nc-ptp-xar` (NC PTP)                           |
-| `all`    | union of every other flavor (computed automatically), also tagged `latest` |
+| Flavor   | Packages |
+|----------|----------|
+| `basic`  | `tc31-xar-um`, `adstool` |
+| `motion` | basic + `tf5000-nc-ptp-xar` (NC PTP) |
+| `all`    | every flavor's packages, also tagged `latest` |
 
-Images: `<forgejo-host>/<owner>/tc31-xar:<flavor>`, plus `<flavor>-YYYYMMDD` and `<flavor>-<git sha>`.
-
-## Layout
-
-```
-docker/            Dockerfile, entrypoints, apt sources, SysStartupState.reg
-flavors/*.conf     one file per flavor (see flavors/TEMPLATE.conf.example)
-scripts/           build.sh, list-flavors.sh, verify-no-secrets.sh, discover-packages.sh
-.forgejo/workflows/build-images.yml   CI: build → verify → push, one job per flavor
-```
-
-## Adding a flavor
-
-Copy `flavors/TEMPLATE.conf.example` to `flavors/<name>.conf` and follow the steps in its header.
-In short: set `DESCRIPTION`, `PACKAGES` (find names with `make discover-packages`) and `PLATFORMS`.
-CI builds every `flavors/*.conf` as its own job, and `all` picks up the new packages automatically.
-
-## Local builds
-
-```sh
-cp .env.example .env              # fill in BHF_USER / BHF_PASSWORD (myBeckhoff login)
-make list-flavors
-make build-image FLAVOR=basic     # host platform, loaded into local docker as tc31-xar:basic
-make verify-image FLAVOR=basic    # fail if any credential ended up in the image
-make build-all verify-all
-# push manually (multi-arch needs QEMU/binfmt locally):
-docker login git.example.com
-make push-image FLAVOR=all REGISTRY=git.example.com IMAGE_OWNER=myorg
-```
+To add a flavor, see [`flavors/README.md`](flavors/README.md).
 
 ## Credentials
 
-Put your real credentials in **`.env`** at the repo root (git-ignored, template: `.env.example`):
+Copy `.env.example` to `.env` (git-ignored) and set `BHF_USER` / `BHF_PASSWORD` to your myBeckhoff
+login. The scripts read it for builds and `docker compose` passes it into the container.
+
+Credentials never end up in an image: the build only sees them as a BuildKit secret, and
+`scripts/verify-no-secrets.sh` scans every layer, the image config and the history for them.
+CI runs that check before pushing.
+
+If `BHF_USER` / `BHF_PASSWORD` are set when the container starts, the entrypoint writes them to
+`/etc/apt/auth.conf.d/bhf.conf` so `apt-get` works inside the container. Values passed this way
+are visible in `docker inspect`.
+
+## Local use
 
 ```sh
-BHF_USER=you@example.com
-BHF_PASSWORD=your-password
+make list                 # flavors and their packages
+make build FLAVOR=motion  # build for this machine's platform
+make verify FLAVOR=motion # secret scan
+make build-all verify-all
+docker compose up -d      # run TC_IMAGE from .env
 ```
 
-`make` / `scripts/*.sh` and `docker compose` read it automatically. Lookup order for builds:
-`BHF_USER`/`BHF_PASSWORD` from the environment → `.env` → the netrc file `APT_AUTH_CONF`
-(default `docker/apt-config/bhf.conf`, which only holds generic placeholder values).
-Real credentials are **never** stored in an image or in git:
+The compose file uses `privileged: true` (Beckhoff's default) for realtime scheduling, EFI
+variables and host NICs. Real-time behaviour needs a PREEMPT_RT host kernel such as Beckhoff RT Linux.
 
-- `.env` is git-ignored. `bhf.conf` and `*.netrc` are excluded from the build context (`docker/.dockerignore`).
-- From `BHF_USER`/`BHF_PASSWORD` the scripts write a temporary netrc file (mode 600) and delete it on exit.
-- The build only reads them through a BuildKit secret mount (`--secret id=apt`), and a final
-  scrub step removes any `auth.conf`/netrc files.
-- `scripts/verify-no-secrets.sh` scans every layer, the image config and the build history
-  for the login/password values. CI runs it before pushing.
+## CI
 
-### Runtime apt credentials
+`.forgejo/workflows/build-images.yml` builds, scans and smoke-tests every flavor, then pushes
+amd64 + arm64 images. It runs on pushes to `master`, weekly, and manually. Pull requests only build
+and verify.
 
-To install extra packages inside a running container, pass the credentials when you start it.
-`docker-compose.yml` already passes `BHF_USER`/`BHF_PASSWORD` from `.env`.
-The entrypoint writes them to `/etc/apt/auth.conf.d/bhf.conf` (mode 600) in the container
-only, and removes `BHF_PASSWORD` from the environment before starting the TwinCAT service:
-
-```yaml
-# docker-compose.yml
-services:
-  tc31-xar:
-    image: <forgejo-host>/<owner>/tc31-xar:basic
-    environment:
-      BHF_USER: ${BHF_USER}          # or list form:  - BHF_USER=${BHF_USER}
-      BHF_PASSWORD: ${BHF_PASSWORD}
-```
-
-```sh
-# preferred: secret file (does not show up in `docker inspect`)
-docker run -v $PWD/my-bhf.netrc:/run/secrets/bhf:ro -e BHF_AUTH_FILE=/run/secrets/bhf tc31-xar:basic
-# or environment variables
-docker run -e BHF_USER=... -e BHF_PASSWORD=... tc31-xar:basic
-docker run --rm -e BHF_USER=... -e BHF_PASSWORD=... tc31-xar:basic sh -c 'apt-get update && apt-get install -y tf...'
-```
-
-`BHF_HOSTS` overrides the host list (default `deb.beckhoff.com deb-mirror.beckhoff.com`).
-Values passed with `-e` are visible to anyone who can run `docker inspect` on the container. Use the
-secret-file option on shared hosts.
-
-## Forgejo CI setup
-
-Workflow: `.forgejo/workflows/build-images.yml`. It runs on pushes to `master`, PRs (build and
-verify only, no push), weekly, and manually (optional comma-separated `flavors` input).
-
-Runner: a Forgejo runner whose jobs can use the host Docker daemon, with the label
-`catthehacker-latest-armbox` mapped to `ghcr.io/catthehacker/ubuntu:act-latest` (includes Node.js
-for the JavaScript actions, git, and the Docker CLI with buildx). In the runner's `config.yml`:
-
-```yaml
-container:
-  docker_host: "automount"
-```
-
-To use another runner, change `runs-on` in the workflow. The host can be amd64 or arm64; the other
-architecture is built through QEMU.
-
-| Kind     | Name             | Purpose                                                    |
-|----------|------------------|------------------------------------------------------------|
-| secret   | `BHF_USER`       | myBeckhoff login for deb.beckhoff.com                      |
-| secret   | `BHF_PASSWORD`   | myBeckhoff password                                        |
-| secret   | `REGISTRY_TOKEN` | Forgejo access token with `write:package` scope            |
-| variable | `REGISTRY`       | optional, registry host (default: Forgejo server host)     |
-| variable | `IMAGE_OWNER`    | optional, package owner (default: repository owner)        |
-| variable | `REGISTRY_USER`  | optional, login user for the token (default: workflow actor) |
-
-## Running
-
-```sh
-make run-containers    # docker compose, uses TC_IMAGE / AMS_NETID / BHF_* from .env
-```
-
-`docker-compose.yml` runs the container with `privileged: true` (Beckhoff's default). This allows
-realtime scheduling, reading EFI variables (Beckhoff IPC hardware info) and using host devices/NICs.
-On dev/test hosts, `cap_add: [SYS_NICE]` is enough for realtime scheduling (see the comment in the
-compose file). A realtime (PREEMPT_RT) host kernel such as Beckhoff RT Linux is needed for real RT.
-Otherwise the runtime logs `Realtime kernel is not active` but still runs.
+- Runner label `catthehacker-latest-armbox` (`ghcr.io/catthehacker/ubuntu:act-latest`), with
+  `container.docker_host: "automount"` in the runner config.
+- Secrets: `BHF_USER`, `BHF_PASSWORD`, `REGISTRY_TOKEN` (Forgejo token with package write access).
+- Variable (optional): `REGISTRY_USER`, the token owner's username (default: the user who triggered the run).

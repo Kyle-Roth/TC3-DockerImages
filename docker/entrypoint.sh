@@ -1,11 +1,16 @@
 #!/bin/sh
-# SPDX-License-Identifier: Zero-Clause BSD
-
-# Exit immediately if a command exits with a non-zero status
+# Optionally set up Beckhoff apt credentials (BHF_USER/BHF_PASSWORD) in the
+# container, then run the given command or, by default, the TwinCAT system service.
 set -e
 
-# Indicate the script's start for logging purposes
-echo "Starting TcSystemServiceUm..."
+if [ -n "${BHF_USER:-}" ] && [ -n "${BHF_PASSWORD:-}" ]; then
+    mkdir -p /etc/apt/auth.conf.d
+    ( umask 077
+      for host in deb.beckhoff.com deb-mirror.beckhoff.com; do
+          echo "machine $host login $BHF_USER password $BHF_PASSWORD"
+      done > /etc/apt/auth.conf.d/bhf.conf )
+fi
+unset BHF_PASSWORD   # keep it out of the service's environment
 
-# Replaces the shell process with the TcSystemServiceUm process, ensuring proper signal handling
+[ $# -gt 0 ] && exec "$@"
 exec /usr/bin/TcSystemServiceUm -f 0x7 -i "${AMS_NETID}" -p /var/run/TcSystemServiceUm.pid
