@@ -30,6 +30,8 @@ jobs:
         flavor: ${{ fromJSON(needs.flavors.outputs.list) }}
     env:
       FLAVOR: ${{ matrix.flavor }}
+      # schedule/manual -> release tags; push to master -> dev tags; PRs never push
+      CHANNEL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}
       BHF_USER: ${{ secrets.BHF_USER }}
       BHF_PASSWORD: ${{ secrets.BHF_PASSWORD }}
       SERVER_URL: ${{ github.server_url }}
