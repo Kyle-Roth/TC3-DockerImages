@@ -3,7 +3,9 @@
 #   scripts/build.sh <flavor>               host platform, loaded into local docker
 #   scripts/build.sh <flavor> --push        all PLATFORMS, pushed to $REGISTRY/$IMAGE_OWNER
 #   scripts/build.sh <flavor> --print-tags  print the image tags and exit
-# Env: REGISTRY, IMAGE_OWNER, IMAGE_NAME (default tc31-xar), BUILD_REF (default git HEAD)
+# Env: REGISTRY, IMAGE_OWNER, IMAGE_NAME (default tc31-xar), BUILD_REF (default git HEAD),
+#      CHANNEL: release (default) tags <flavor>, <flavor>-YYYYMMDD and, for full, latest;
+#               dev tags <flavor>-dev and <flavor>-<sha>
 set -eu
 . "$(dirname -- "$0")/lib.sh"
 
@@ -12,8 +14,13 @@ mode=${2:-}
 
 ref=${BUILD_REF:-$(git -C "$REPO_ROOT" rev-parse HEAD)}
 image=$(echo "${REGISTRY:+$REGISTRY/}${IMAGE_OWNER:+$IMAGE_OWNER/}${IMAGE_NAME:-tc31-xar}" | tr '[:upper:]' '[:lower:]')
-tags="$image:$FLAVOR $image:$FLAVOR-$(date -u +%Y%m%d) $image:$FLAVOR-$(printf '%.7s' "$ref")"
-[ "$FLAVOR" = all ] && tags="$tags $image:latest"
+case ${CHANNEL:-release} in
+    release)
+        tags="$image:$FLAVOR $image:$FLAVOR-$(date -u +%Y%m%d)"
+        [ "$FLAVOR" = full ] && tags="$tags $image:latest" ;;
+    dev) tags="$image:$FLAVOR-dev $image:$FLAVOR-$(printf '%.7s' "$ref")" ;;
+    *) die "unknown CHANNEL '$CHANNEL' (release|dev)" ;;
+esac
 
 case $mode in
     --print-tags) printf '%s\n' $tags; exit 0 ;;

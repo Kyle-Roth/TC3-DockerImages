@@ -13,4 +13,4 @@ Each `<name>.conf` here is one image, `tc31-xar:<name>`. To add one:
    ```
 3. Test it: `make build FLAVOR=<name> && make verify FLAVOR=<name>`.
 
-CI builds every `*.conf` as its own job, and `all` picks up the new packages automatically.
+CI builds every `*.conf` as its own job, and `full` picks up the new packages automatically.

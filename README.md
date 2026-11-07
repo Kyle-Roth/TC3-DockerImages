@@ -1,14 +1,18 @@
 # TC3-DockerImages
 
 TwinCAT 3.1 XAR (user mode) runtime images on Debian, one image per **flavor**, built for
-amd64 and arm64 and pushed to the Forgejo registry as `git.kyleroth.dev/beckhoff/tc31-xar:<flavor>`
-(plus `<flavor>-YYYYMMDD` and `<flavor>-<sha>` tags).
+amd64 and arm64 and pushed to the Forgejo registry as `git.kyleroth.dev/beckhoff/tc31-xar:<flavor>`.
+
+| Tag | Updated by |
+|-----|------------|
+| `<flavor>`, `<flavor>-YYYYMMDD`, `latest` (= `full`) | weekly schedule and manual runs |
+| `<flavor>-dev`, `<flavor>-<sha>` | every push to `master` |
 
 | Flavor   | Packages |
 |----------|----------|
 | `basic`  | `tc31-xar-um`, `adstool` |
 | `motion` | basic + `tf5000-nc-ptp-xar` (NC PTP) |
-| `all`    | every flavor's packages, also tagged `latest` |
+| `full`   | every flavor's packages, also tagged `latest` |
 
 To add a flavor, see [`flavors/README.md`](flavors/README.md).
 
@@ -41,8 +45,9 @@ variables and host NICs. Real-time behaviour needs a PREEMPT_RT host kernel such
 ## CI
 
 `.forgejo/workflows/build-images.yml` builds, scans and smoke-tests every flavor, then pushes
-amd64 + arm64 images. It runs on pushes to `master`, weekly, and manually. Pull requests only build
-and verify.
+amd64 + arm64 images. Weekly (Mondays 12:00 UTC) and manual runs push the release tags; pushes to
+`master` push only the `-dev` / `-<sha>` tags, so merged changes reach `<flavor>` and `latest` at the
+next weekly or manual run. Pull requests only build and verify.
 
 - Runner label `catthehacker-latest-armbox` (`ghcr.io/catthehacker/ubuntu:act-latest`), with
   `container.docker_host: "automount"` in the runner config.
