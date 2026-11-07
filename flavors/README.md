@@ -12,5 +12,6 @@ Each `<name>.conf` here is one image, `tc31-xar:<name>`. To add one:
    # PLATFORMS="linux/amd64"
    ```
 3. Test it: `make build FLAVOR=<name> && make verify FLAVOR=<name>`.
+4. Add it to the image table in the top-level `README.md`.
 
 CI builds every `*.conf` as its own job, and `full` picks up the new packages automatically.
