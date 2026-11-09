@@ -33,6 +33,6 @@ for blob in $(find "$work" -type f \( -path '*/blobs/*' -o -name layer.tar \)); 
     fi
 done
 
-[ "$layers" -gt 0 ] || die "no layers found in $image"
-[ "$fail" -eq 0 ] || die "$image failed the secret scan"
+[ "$layers" -gt 0 ] || { echo "error: no layers found in $image" >&2; exit 1; }
+[ "$fail" -eq 0 ] || { echo "error: $image failed the secret scan" >&2; exit 1; }
 echo ">>> $image: no credentials found ($layers layers)"

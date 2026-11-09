@@ -3,33 +3,33 @@ name: Build TwinCAT images
 on:
   push:
     branches: [master]
-    paths: ['.forgejo/workflows/**', 'docker/**', 'flavors/**', 'scripts/**']
+    paths: ['.forgejo/workflows/**', 'docker/**', 'profiles/**', 'scripts/**']
   pull_request:
-    paths: ['.forgejo/workflows/**', 'docker/**', 'flavors/**', 'scripts/**']
+    paths: ['.forgejo/workflows/**', 'docker/**', 'profiles/**', 'scripts/**']
   schedule:
     - cron: '0 12 * * 1'   # weekly, picks up new Beckhoff/Debian packages
   workflow_dispatch:
 
 jobs:
-  flavors:
+  profiles:
     runs-on: catthehacker-latest-armbox
     outputs:
       list: ${{ steps.list.outputs.list }}
     steps:
       - uses: actions/checkout@v4
       - id: list
-        run: echo "list=$(scripts/list-flavors.sh --json)" >> "$GITHUB_OUTPUT"
+        run: echo "list=$(scripts/list-profiles.sh --json)" >> "$GITHUB_OUTPUT"
 
   build:
-    name: ${{ matrix.flavor }}
-    needs: flavors
+    name: ${{ matrix.profile }}
+    needs: profiles
     runs-on: catthehacker-latest-armbox
     strategy:
       fail-fast: false
       matrix:
-        flavor: ${{ fromJSON(needs.flavors.outputs.list) }}
+        profile: ${{ fromJSON(needs.profiles.outputs.list) }}
     env:
-      FLAVOR: ${{ matrix.flavor }}
+      PROFILE: ${{ matrix.profile }}
       # schedule/manual -> release tags; push to master -> dev tags; PRs never push
       CHANNEL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}
       BHF_USER: ${{ secrets.BHF_USER }}
@@ -44,15 +44,15 @@ jobs:
       - uses: https://github.com/docker/setup-buildx-action@v3
 
       - name: Build
-        run: scripts/build.sh "$FLAVOR"
+        run: scripts/build.sh "$PROFILE"
 
       - name: Verify no credentials in image
-        run: scripts/verify-no-secrets.sh "$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)"
+        run: scripts/verify-no-secrets.sh "$(scripts/build.sh "$PROFILE" --print-tags | head -n1)"
 
       - name: Smoke test
         run: |
-          docker run --rm "$(scripts/build.sh "$FLAVOR" --print-tags | head -n1)" \
-            sh -c 'test -x /usr/bin/TcSystemServiceUm && command -v adstool && echo "flavor=$TC_FLAVOR"'
+          docker run --rm "$(scripts/build.sh "$PROFILE" --print-tags | head -n1)" \
+            sh -c 'test -x /usr/bin/TcSystemServiceUm && command -v adstool && echo "profile=$TC_profile"'
 
       - name: Push
         if: github.event_name != 'pull_request'   # PRs only build and verify
@@ -62,4 +62,4 @@ jobs:
         run: |
           export REGISTRY="${SERVER_URL#*://}"
           echo "$REGISTRY_TOKEN" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
-          scripts/build.sh "$FLAVOR" --push
+          scripts/build.sh "$PROFILE" --push

@@ -11,9 +11,9 @@ If set when the container starts, the entrypoint writes them to `/etc/apt/auth.c
 ## Local use
 
 ```sh
-make list                 # flavors and their packages
-make build FLAVOR=motion  # build for this machine
-make verify FLAVOR=motion # secret scan
+make list                 # profiles and their packages
+make build PROFILE=motion  # build for this machine
+make verify PROFILE=motion # secret scan
 make build-all verify-all
 docker compose up -d      # run TC_IMAGE from .env
 ```
@@ -21,16 +21,16 @@ docker compose up -d      # run TC_IMAGE from .env
 The compose file runs `privileged: true` (realtime, EFI variables, host NICs). Real-time
 behaviour needs a PREEMPT_RT host kernel such as Beckhoff RT Linux.
 
-To add a flavor, see [`flavors/README.md`](../flavors/README.md).
+To add a profile, see [`profiles/README.md`](../profiles/README.md).
 
 ## CI
 
-`.forgejo/workflows/build-images.yml` builds, scans and smoke-tests every flavor.
+`.forgejo/workflows/build-images.yml` builds, scans and smoke-tests every profile.
 
 | Trigger | Pushes |
 |---------|--------|
-| Weekly (Mon 12:00 UTC), manual | `<flavor>`, `<flavor>-YYYYMMDD`, `latest` |
-| Push to `master` | `<flavor>-dev`, `<flavor>-<sha>` |
+| Weekly (Mon 12:00 UTC), manual | `<profile>`, `<profile>-YYYYMMDD`, `latest` |
+| Push to `master` | `<profile>-dev`, `<profile>-<sha>` |
 | Pull request | nothing |
 
 - Runner label `catthehacker-latest-armbox` (`ghcr.io/catthehacker/ubuntu:act-latest`), with

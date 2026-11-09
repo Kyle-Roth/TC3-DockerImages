@@ -3,9 +3,9 @@ services:
   tc31-xar:
     image: ${TC_IMAGE:-tc31-xar:basic}
     environment:
-      AMS_NETID: ${AMS_NETID:-15.15.15.15.1.1}
-      BHF_USER: ${BHF_USER:-}
-      BHF_PASSWORD: ${BHF_PASSWORD:-}
+      AMS_NETID: 192.168.1.69.1.1
+      BHF_USER: $BHF_USER
+      BHF_PASSWORD: $BHF_PASSWORD
     # Realtime scheduling, EFI variables and host NICs (EtherCAT).
     # Dev/test hosts only need realtime: replace with  cap_add: [SYS_NICE]
     privileged: true
