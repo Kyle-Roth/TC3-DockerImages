@@ -40,10 +40,10 @@ load_profile()
 dotenv_get() {
     if [ ! -f "$REPO_ROOT/.env" ]; then
         echo "error: $REPO_ROOT/.env does not exist"
-        exit 1
+        return 1
     fi
 
-    . $REPO_ROOT/.env
+    . "$REPO_ROOT/.env"
 }
 
 # Write BHF_USER/BHF_PASSWORD (environment, else .env) to a temporary netrc file
@@ -60,10 +60,11 @@ require_auth() {
        exit 1
     fi
     # user and password can't contain white spaces
-    if [ "$BHF_USER$BHF_PASSWORD" = *[[:space:]]* ]; then
+    case "$BHF_USER$BHF_PASSWORD" in
+        *[[:space:]]*)
         echo "error: BHF_USER and BHF_PASSWORD can not contain whitespace"
-        exit 1
-    fi
+        exit 1;;
+    esac
 
     # generate temporary file and set it to delete on shell exit
     AUTH_FILE=$(umask 077 && mktemp)

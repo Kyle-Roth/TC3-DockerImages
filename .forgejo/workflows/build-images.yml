@@ -32,7 +32,7 @@ jobs:
       PROFILE: ${{ matrix.profile }}
       # schedule/manual -> release tags; push to master -> dev tags; PRs never push
       CHANNEL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}
-      BHF_USER: ${{ secrets.BHF_USER }}
+      BHF_USER: ${{ vars.BHF_USER }}
       BHF_PASSWORD: ${{ secrets.BHF_PASSWORD }}
       REGISTRY: ghcr.io
       IMAGE_OWNER: ${{ vars.GHCR_OWNER }}
