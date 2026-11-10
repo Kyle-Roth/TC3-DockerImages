@@ -40,7 +40,7 @@ load_profile()
 dotenv_get() {
     if [ ! -f "$REPO_ROOT/.env" ]; then
         echo "error: $REPO_ROOT/.env does not exist"
-        return 1
+        exit 1
     fi
 
     . "$REPO_ROOT/.env"
