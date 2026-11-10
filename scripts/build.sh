@@ -4,12 +4,13 @@
 #   scripts/build.sh <profile> --push        all PLATFORMS, pushed to $REGISTRY/$IMAGE_OWNER
 #   scripts/build.sh <profile> --print-tags  print the image tags and exit
 # Env: REGISTRY, IMAGE_OWNER, IMAGE_NAME (default tc31-xar), BUILD_REF (default git HEAD),
+#      IMAGE_SOURCE: repo URL for the org.opencontainers.image.source label (links a GHCR package),
 #      CHANNEL: release tags <profile>, <profile>-YYYYMMDD and, for full, latest;
 #               dev tags <profile>-dev and <profile>-<sha>
 set -eu
 . "$(dirname -- "$0")/lib.sh"
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
     echo "usage: $0 <profile> [--push | --print-tags]"
     exit 1
 fi
@@ -50,5 +51,6 @@ docker buildx build "$REPO_ROOT/docker" \
     --build-arg "PROFILE=$PROFILE" \
     --build-arg "TC_PACKAGES=$PACKAGES" \
     --provenance=false \
+    ${IMAGE_SOURCE:+--label "org.opencontainers.image.source=$IMAGE_SOURCE"} \
     $(printf -- '--tag %s ' $tags) \
     $output
