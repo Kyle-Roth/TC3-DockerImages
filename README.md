@@ -6,9 +6,12 @@ TwinCAT 3.1 XAR runtime (user mode) on Debian, for amd64 and arm64.
 
 | Image | Contents |
 |-------|----------|
-| `ghcr.io/OWNER/tc31-xar:basic`  | TwinCAT runtime, `adstool` |
-| `ghcr.io/OWNER/tc31-xar:motion` | basic + TF5000 NC PTP |
-| `ghcr.io/OWNER/tc31-xar:full`   | every TwinCAT package (`tc* tf* te*`), also `:latest` |
+| `ghcr.io/Kyle-Roth/tc31-xar:basic`                | TwinCAT runtime, `adstool` |
+| `ghcr.io/Kyle-Roth/tc31-xar:EtherCAT_sim`         | basic + TE1111 EtherCAT simulation |
+| `ghcr.io/Kyle-Roth/tc31-xar:communication`        | basic + all communication (`tf6*`) |
+| `ghcr.io/Kyle-Roth/tc31-xar:motion`               | basic + TF5000 NC PTP |
+| `ghcr.io/Kyle-Roth/tc31-xar:hmi`                  | basic + TF2000 HMI server |
+| `ghcr.io/Kyle-Roth/tc31-xar:full`, also `:latest` | every TwinCAT package (`tc* tf* te*`)|
 
 Tags per image:
 
