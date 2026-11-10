@@ -1,27 +1,27 @@
-# make build FLAVOR=motion | make build-all verify-all | make push FLAVOR=full REGISTRY=... IMAGE_OWNER=...
-FLAVOR ?= basic
-FLAVORS = $(basename $(notdir $(wildcard flavors/*.conf)))
-export REGISTRY IMAGE_OWNER IMAGE_NAME
+# make build PROFILE=motion | make build-all verify-all | make push PROFILE=full REGISTRY=ghcr.io IMAGE_OWNER=...
+PROFILE ?= basic
+PROFILES = $(basename $(notdir $(wildcard profiles/*.conf)))
+export REGISTRY IMAGE_OWNER IMAGE_NAME IMAGE_SOURCE
 
 .PHONY: list discover-packages build build-all verify verify-all push
 
 list:
-	@scripts/list-flavors.sh
+	@scripts/list-profiles.sh
 
 discover-packages:
 	@scripts/discover-packages.sh
 
 build:
-	scripts/build.sh $(FLAVOR)
+	scripts/build.sh $(PROFILE)
 
 build-all:
-	@set -e; for f in $(FLAVORS); do scripts/build.sh $$f; done
+	@set -e; for f in $(PROFILES); do scripts/build.sh $$f; done
 
 verify:
-	scripts/verify-no-secrets.sh $$(scripts/build.sh $(FLAVOR) --print-tags | head -n1)
+	scripts/verify-no-secrets.sh $$(scripts/build.sh $(PROFILE) --print-tags | head -n1)
 
 verify-all:
-	@set -e; for f in $(FLAVORS); do $(MAKE) -s verify FLAVOR=$$f; done
+	@set -e; for f in $(PROFILES); do $(MAKE) -s verify PROFILE=$$f; done
 
 push:
-	scripts/build.sh $(FLAVOR) --push
+	scripts/build.sh $(PROFILE) --push
