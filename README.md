@@ -6,9 +6,9 @@ TwinCAT 3.1 XAR runtime (user mode) on Debian, for amd64 and arm64.
 
 | Image | Contents |
 |-------|----------|
-| `git.kyleroth.dev/beckhoff/tc31-xar:basic`  | TwinCAT runtime, `adstool` |
-| `git.kyleroth.dev/beckhoff/tc31-xar:motion` | basic + TF5000 NC PTP |
-| `git.kyleroth.dev/beckhoff/tc31-xar:full`   | every TwinCAT package (`tc* tf* te*`), also `:latest` |
+| `ghcr.io/OWNER/tc31-xar:basic`  | TwinCAT runtime, `adstool` |
+| `ghcr.io/OWNER/tc31-xar:motion` | basic + TF5000 NC PTP |
+| `ghcr.io/OWNER/tc31-xar:full`   | every TwinCAT package (`tc* tf* te*`), also `:latest` |
 
 Tags per image:
 

@@ -25,7 +25,9 @@ To add a profile, see [`profiles/README.md`](../profiles/README.md).
 
 ## CI
 
-`.forgejo/workflows/build-images.yml` builds, scans and smoke-tests every profile.
+`.forgejo/workflows/build-images.yml` builds, scans and smoke-tests every profile, then pushes
+to `ghcr.io/<GHCR_OWNER>/tc31-xar`. The GitHub repository is a push mirror of this one; images
+are pushed from Forgejo CI, not GitHub Actions.
 
 | Trigger | Pushes |
 |---------|--------|
@@ -35,5 +37,8 @@ To add a profile, see [`profiles/README.md`](../profiles/README.md).
 
 - Runner label `catthehacker-latest-armbox` (`ghcr.io/catthehacker/ubuntu:act-latest`), with
   `container.docker_host: "automount"` in the runner config.
-- Secrets: `BHF_USER`, `BHF_PASSWORD`, `REGISTRY_TOKEN` (package write access).
-- Variable (optional): `REGISTRY_USER`, the token owner (default: the user who triggered the run).
+- Secrets: `BHF_USER`, `BHF_PASSWORD`, `GHCR_TOKEN` (GitHub classic PAT with `write:packages`).
+- Variables: `GHCR_OWNER` (GitHub user or org that owns the packages); optional `GHCR_USER`
+  (token owner, default `GHCR_OWNER`) and `IMAGE_SOURCE` (GitHub repo URL; labels the image so
+  the package links to the repo).
+- New GHCR packages are private: set each one to public once in its package settings.

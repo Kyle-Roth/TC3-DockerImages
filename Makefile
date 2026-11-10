@@ -1,7 +1,7 @@
-# make build PROFILE=motion | make build-all verify-all | make push PROFILE=full REGISTRY=... IMAGE_OWNER=...
+# make build PROFILE=motion | make build-all verify-all | make push PROFILE=full REGISTRY=ghcr.io IMAGE_OWNER=...
 PROFILE ?= basic
 PROFILES = $(basename $(notdir $(wildcard profiles/*.conf)))
-export REGISTRY IMAGE_OWNER IMAGE_NAME
+export REGISTRY IMAGE_OWNER IMAGE_NAME IMAGE_SOURCE
 
 .PHONY: list discover-packages build build-all verify verify-all push
 

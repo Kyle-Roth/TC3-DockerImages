@@ -34,8 +34,9 @@ jobs:
       CHANNEL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}
       BHF_USER: ${{ secrets.BHF_USER }}
       BHF_PASSWORD: ${{ secrets.BHF_PASSWORD }}
-      SERVER_URL: ${{ github.server_url }}
-      IMAGE_OWNER: ${{ github.repository_owner }}
+      REGISTRY: ghcr.io
+      IMAGE_OWNER: ${{ vars.GHCR_OWNER }}
+      IMAGE_SOURCE: ${{ vars.IMAGE_SOURCE }}
     steps:
       - uses: actions/checkout@v4
       - uses: https://github.com/docker/setup-qemu-action@v3
@@ -57,9 +58,9 @@ jobs:
       - name: Push
         if: github.event_name != 'pull_request'   # PRs only build and verify
         env:
-          REGISTRY_USER: ${{ vars.REGISTRY_USER || github.actor }}
-          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          GHCR_USER: ${{ vars.GHCR_USER || vars.GHCR_OWNER }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          export REGISTRY="${SERVER_URL#*://}"
-          echo "$REGISTRY_TOKEN" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
+          : "${IMAGE_OWNER:?set the GHCR_OWNER repository variable}" "${GHCR_TOKEN:?set the GHCR_TOKEN secret}"
+          echo "$GHCR_TOKEN" | docker login "$REGISTRY" -u "$GHCR_USER" --password-stdin
           scripts/build.sh "$PROFILE" --push
