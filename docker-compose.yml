@@ -6,6 +6,8 @@ services:
       AMS_NETID: 192.168.1.69.1.1
       BHF_USER: $BHF_USER
       BHF_PASSWORD: $BHF_PASSWORD
+    volumes:
+      - /dev/hugepages:/dev/hugepages:rw
     # Realtime scheduling, EFI variables and host NICs (EtherCAT).
     # Dev/test hosts only need realtime: replace with  cap_add: [SYS_NICE]
     privileged: true

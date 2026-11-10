@@ -1,6 +1,20 @@
 # TC3-DockerImages
 
-TwinCAT 3.1 XAR runtime (user mode) on Debian, for amd64 and arm64.
+Docker containers pre-installed with TwinCAT 3.1 XAR, for amd64 and arm64. Feel free to recommend profiles with different package configurations
+
+## Considerations for installation
+
+This was built following [TC_XAR_Container_Sample](github.com/Beckhoff/TC_XAR_Container_Sample/tree/main). As stated there, these docker containers are designed for an Industrial PC running Beckhoff Real-Time Linux. They will only work if your environment meets the following prerequisites:
+
+**Beckhoff IPC as Beckhoff RT Linux host:**
+- [Setup and Install](https://infosys.beckhoff.com/english.php?content=../content/1033/beckhoff_rt_linux/17350447499.html) the Beckhoff Real-Time Linux® Distribution on a supported IPC.
+- [Configure access to Beckhoff package server](https://infosys.beckhoff.com/english.php?content=../content/1033/beckhoff_rt_linux/17350408843.html)
+- Install the required host packages from the default Debian package sources:
+
+```bash
+sudo apt update
+sudo apt install --yes docker.io docker-compose make tcsysconf
+```
 
 ## Images
 
