@@ -4,7 +4,7 @@ Docker containers pre-installed with TwinCAT 3.1 XAR, for amd64 and arm64. Feel 
 
 ## Considerations for installation
 
-This was built following [TC_XAR_Container_Sample](github.com/Beckhoff/TC_XAR_Container_Sample/tree/main). As stated there, these docker containers are designed for an Industrial PC running Beckhoff Real-Time Linux. They will only work if your environment meets the following prerequisites:
+This was built following [TC_XAR_Container_Sample](https://www.github.com/Beckhoff/TC_XAR_Container_Sample/tree/main). As stated there, these docker containers are designed for an Industrial PC running Beckhoff Real-Time Linux. They will only work if your environment meets the following prerequisites:
 
 **Beckhoff IPC as Beckhoff RT Linux host:**
 - [Setup and Install](https://infosys.beckhoff.com/english.php?content=../content/1033/beckhoff_rt_linux/17350447499.html) the Beckhoff Real-Time Linux® Distribution on a supported IPC.

@@ -1,20 +1,51 @@
-# Reads TC_IMAGE, AMS_NETID, TC_ADMIN_PASSWORD and BHF_USER/BHF_PASSWORD (optional, for apt inside the container) from .env
+# Two TwinCAT XAR runtimes, each with its own IP on the wired LAN (macvlan), so TwinCAT Engineering
+# reaches every container directly.
+# apt repository authentication comes from .env (see .env.example). To add a PLC: copy a service, give it a new IP and Net ID.
+#
+# Notes:
+# - The host itself cannot reach macvlan containers (Linux limitation); other machines on the LAN can.
+# - Traffic bypasses the host firewall, so no nftables rules are needed for these containers.
+# - Could be a good idea to pick IPs outside the LAN's DHCP range.
+
+networks:
+  tc-lan:
+    driver: macvlan
+    driver_opts:
+      parent: end0 # NIC on host machine for TcXaeShell access
+    ipam:
+      config:
+        - subnet: 10.42.0.0/24
+          gateway: 10.42.0.1
+
 services:
-  tc31-xar:
+  tc31-xar-1:
     image: ghcr.io/kyle-roth/tc31-xar:full
-    hostname: tc31-xar
+    hostname: tc31-xar-1
     environment:
-      AMS_NETID: 192.168.1.69.1.1                   # Must be unique on the ADS network
-      TC_ADMIN_PASSWORD: ${TC_ADMIN_PASSWORD:-1}  # Password needed for user Administrator
+      AMS_NETID: 10.42.0.60.1.1   # unique on the ADS network
+      TC_ADMIN_PASSWORD: 1        # Password needed for user Administrator
       BHF_USER: $BHF_USER
       BHF_PASSWORD: $BHF_PASSWORD
     volumes:
-      - /dev/hugepages:/dev/hugepages:rw
-    # Realtime scheduling, EFI variables and host NICs (EtherCAT)
-    # Dev/test hosts only need realtime: replace with  cap_add: [SYS_NICE]
-    privileged: true
-    ports:
-      - "8016:8016/tcp"
-      - "48898:48898/tcp"
-      - "48899:48899/udp"
-    restart: unless-stopped
+      # One hugepage directory per container: DPDK locks it exclusively at startup,
+      # so a shared /dev/hugepages makes every container after the first hang.
+      - /dev/hugepages/plc1:/dev/hugepages:rw
+    networks:
+      tc-lan:
+        ipv4_address: 10.42.0.60
+
+  tc31-xar-2:
+    image: ghcr.io/kyle-roth/tc31-xar:full
+    hostname: tc31-xar-2
+    environment:
+      AMS_NETID: 10.42.0.60.1.1   # unique on the ADS network
+      TC_ADMIN_PASSWORD: 1        # Password needed for user Administrator
+      BHF_USER: $BHF_USER
+      BHF_PASSWORD: $BHF_PASSWORD
+    volumes:
+      # One hugepage directory per container: DPDK locks it exclusively at startup,
+      # so a shared /dev/hugepages makes every container after the first hang.
+      - /dev/hugepages/plc1:/dev/hugepages:rw
+    networks:
+      tc-lan:
+        ipv4_address: 10.42.0.60
