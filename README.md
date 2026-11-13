@@ -20,12 +20,12 @@ sudo apt install --yes docker.io docker-compose make tcsysconf
 
 | Image | Contents |
 |-------|----------|
-| `ghcr.io/Kyle-Roth/tc31-xar:basic`                | TwinCAT runtime, `adstool` |
-| `ghcr.io/Kyle-Roth/tc31-xar:EtherCAT_sim`         | basic + TE1111 EtherCAT simulation |
-| `ghcr.io/Kyle-Roth/tc31-xar:communication`        | basic + all communication (`tf6*`) |
-| `ghcr.io/Kyle-Roth/tc31-xar:motion`               | basic + TF5000 NC PTP |
-| `ghcr.io/Kyle-Roth/tc31-xar:hmi`                  | basic + TF2000 HMI server |
-| `ghcr.io/Kyle-Roth/tc31-xar:full`, also `:latest` | every TwinCAT package (`tc* tf* te*`)|
+| `ghcr.io/kyle-roth/tc31-xar:basic`                | TwinCAT runtime, `adstool` |
+| `ghcr.io/kyle-roth/tc31-xar:EtherCAT_sim`         | basic + TE1111 EtherCAT simulation |
+| `ghcr.io/kyle-roth/tc31-xar:communication`        | basic + all communication (`tf6*`) |
+| `ghcr.io/kyle-roth/tc31-xar:motion`               | basic + TF5000 NC PTP |
+| `ghcr.io/kyle-roth/tc31-xar:hmi`                  | basic + TF2000 HMI server |
+| `ghcr.io/kyle-roth/tc31-xar:full`, also `:latest` | every TwinCAT package (`tc* tf* te*`)|
 
 Tags per image:
 

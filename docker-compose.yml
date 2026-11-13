@@ -4,7 +4,7 @@ services:
     image: ghcr.io/Kyle-Roth/tc31-xar:latest
     hostname: tc31-xar
     environment:
-      AMS_NETID: 192.168.69.1.1                   # Must be unique on the ADS network
+      AMS_NETID: 192.168.1.69.1.1                   # Must be unique on the ADS network
       TC_ADMIN_PASSWORD: ${TC_ADMIN_PASSWORD:-1}  # Password needed for user Administrator
       BHF_USER: $BHF_USER
       BHF_PASSWORD: $BHF_PASSWORD
