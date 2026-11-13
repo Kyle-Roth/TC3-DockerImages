@@ -1,7 +1,7 @@
 # Reads TC_IMAGE, AMS_NETID, TC_ADMIN_PASSWORD and BHF_USER/BHF_PASSWORD (optional, for apt inside the container) from .env
 services:
   tc31-xar:
-    image: ghcr.io/Kyle-Roth/tc31-xar:latest
+    image: ghcr.io/kyle-roth/tc31-xar:full
     hostname: tc31-xar
     environment:
       AMS_NETID: 192.168.1.69.1.1                   # Must be unique on the ADS network
@@ -10,7 +10,7 @@ services:
       BHF_PASSWORD: $BHF_PASSWORD
     volumes:
       - /dev/hugepages:/dev/hugepages:rw
-    # Realtime scheduling, EFI variables and host NICs (EtherCAT).
+    # Realtime scheduling, EFI variables and host NICs (EtherCAT)
     # Dev/test hosts only need realtime: replace with  cap_add: [SYS_NICE]
     privileged: true
     ports:
